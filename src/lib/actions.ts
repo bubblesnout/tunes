@@ -1,6 +1,6 @@
 // Common library actions shared between screens (play, queue, options menus).
 
-import { api, type Album, type Playlist, type Song } from "./api";
+import { api, type Album, type Artist, type Playlist, type Song } from "./api";
 import { app, navigate, openMenu, toast } from "./app.svelte";
 
 async function albumSongs(id: string): Promise<Song[]> {
@@ -51,6 +51,45 @@ export function playlistMenu(p: Playlist) {
   ]);
 }
 
+/** Albums an artist appears on without being the album artist, built from their songs. */
+export function appearsOn(songs: Song[], ownAlbumIds: Set<string>): Album[] {
+  const out = new Map<string, Album>();
+  for (const s of songs) {
+    if (!s.albumId || ownAlbumIds.has(s.albumId) || out.has(s.albumId)) continue;
+    out.set(s.albumId, { id: s.albumId, name: s.album ?? "", artist: s.artist, coverArt: s.coverArt, year: s.year });
+  }
+  return [...out.values()].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+}
+
+/**
+ * Every song by an artist: their own albums (newest first), then tracks they appear on
+ * elsewhere (Navidrome's getArtist leaves those albums out for track-only credits).
+ */
+export async function artistSongs(id: string, name: string): Promise<Song[]> {
+  const [detail, credited] = await Promise.all([api.artist(id), api.artistSongs(id, name).catch(() => [] as Song[])]);
+  const albums = [...(detail.album ?? [])].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  const own = (await Promise.all(albums.map((a) => api.album(a.id)))).flatMap((d) => d.song ?? []);
+  const ids = new Set(own.map((s) => s.id));
+  return [...own, ...credited.filter((s) => !ids.has(s.id))];
+}
+
+export function artistMenu(a: Artist) {
+  const run = (f: (songs: Song[]) => unknown) => async () => {
+    try {
+      await f(await artistSongs(a.id, a.name));
+    } catch (e) {
+      toast(String(e));
+    }
+  };
+  openMenu(a.name, [
+    { label: "Play", run: run((s) => playSongs(s)) },
+    { label: "Shuffle", run: run((s) => playSongs(s, 0, true)) },
+    { label: "Play next", run: run((s) => queueSongs(s, true, a.name)) },
+    { label: "Add to queue", run: run((s) => queueSongs(s, false, a.name)) },
+    { label: "Open artist", run: () => navigate({ name: "artist", id: a.id }) },
+  ]);
+}
+
 export function songMenu(s: Song, playAll?: () => void) {
   const items = [
     ...(playAll ? [{ label: "Play from here", run: playAll }] : []),
@@ -58,5 +97,6 @@ export function songMenu(s: Song, playAll?: () => void) {
     { label: "Add to queue", run: () => queueSongs([s], false, s.title) },
   ];
   if (s.albumId) items.push({ label: "Go to album", run: () => navigate({ name: "album", id: s.albumId! }) });
+  if (s.artistId) items.push({ label: "Go to artist", run: () => navigate({ name: "artist", id: s.artistId! }) });
   openMenu(s.title, items);
 }

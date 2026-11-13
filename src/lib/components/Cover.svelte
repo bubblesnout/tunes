@@ -15,7 +15,7 @@
 <div class="cover" class:loaded>
   {#if id && !failed}
     {#key id}
-      <img src={coverUrl(id, size)} {alt} decoding="async" draggable="false" use:check
+      <img src={coverUrl(id, size)} {alt} loading="lazy" decoding="async" draggable="false" use:check
         onload={() => (loadedId = id ?? null)} onerror={() => (failedId = id ?? null)} />
     {/key}
   {:else}

@@ -1,7 +1,7 @@
 // Browser-only mock backend so the UI can be developed/previewed with `npm run dev`
 // outside Tauri. Never loaded inside the real app.
 
-import type { Album, Playlist, PlayerSnapshot, Song } from "./api";
+import type { Album, Artist, Playlist, PlayerSnapshot, Song } from "./api";
 
 const ARTISTS = ["Aurora Fields", "The Midnight Arcade", "Kōji Sato", "Neon Harbor", "Velvet Static", "Lumen Drift", "Paper Moons", "Glasshouse"];
 const WORDS = ["Echoes", "Satellite", "Golden Hour", "Nightdrive", "Low Tide", "Paper Hearts", "Afterglow", "Northern", "Static Bloom", "Overpass", "Polaroid", "Wildfire", "Monochrome", "Fever Dream", "Sundial", "Hologram"];
@@ -54,7 +54,43 @@ const HOME = {
   ] as Playlist[],
 };
 
-const allAlbums = () => Object.values(HOME.albums).flat();
+// A larger library for the Artists / Albums pages, so fast scrolling has something to scroll.
+const FIRST = ["Amber", "Blue", "Crimson", "Delta", "Echo", "Faded", "Glass", "Hollow", "Iron", "Jade", "Kite", "Lunar", "Marble",
+  "Night", "Ocean", "Paper", "Quiet", "Rust", "Silver", "Tidal", "Ultra", "Velvet", "Wild", "Xenon", "Yellow", "Zero", "The Black", "4th"];
+const SECOND = ["Harbor", "Lights", "Season", "Arcade", "Fields", "Signal", "Avenue", "Machines", "Garden", "Tape", "Parade", "Motel"];
+const GENRES = ["Electronic", "Indie Rock", "Synthwave", "Ambient", "Jazz", "Hip-Hop", "Folk", "Metal"];
+const LIB_ARTISTS: Artist[] = FIRST.flatMap((f, i) =>
+  SECOND.slice(0, 2 + (i % 4)).map((s, j) => ({ id: `ar-${i}-${j}`, name: `${f} ${s}`, coverArt: `ar-${i}-${j}`, albumCount: 1 + ((i + j) % 4) })),
+);
+// Featured / guest artists: credited on songs but never an album artist.
+const GUESTS: Artist[] = ["Mira Sol", "DJ Kestrel", "Oona Vale", "The Quiet Choir", "Zed Harlow", "Ines Moreau"].map((name, i) => ({
+  id: `gu-${i}`, name, coverArt: `gu-${i}`, albumCount: 0, roles: ["artist"],
+}));
+const LIB_ALBUMS: Album[] = LIB_ARTISTS.flatMap((ar, i) => {
+  const r = rand(i + 7);
+  return Array.from({ length: ar.albumCount ?? 1 }, (_, k) => ({
+    id: `la-${i}-${k}`, name: `${FIRST[Math.floor(r() * FIRST.length)]} ${WORDS[Math.floor(r() * WORDS.length)]}`,
+    artist: ar.name, artistId: ar.id, coverArt: `la-${i}-${k}`, year: 1990 + Math.floor(r() * 35), songCount: 8 + Math.floor(r() * 6),
+    genre: GENRES[Math.floor(r() * GENRES.length)],
+  }));
+}).sort((a, b) => a.name.localeCompare(b.name));
+const LIB_PLAYLISTS: Playlist[] = [
+  ...HOME.playlists,
+  ...["Workout", "Chill Evenings", "Coding", "Sunday Morning", "Party", "Rainy Day", "Throwbacks", "Discoveries", "Instrumental", "Gym"].map((name, i) => ({
+    id: `pl-x${i}`, name, coverArt: `pl-x${i}`, songCount: 10 + i * 7,
+  })),
+];
+
+const allAlbums = () => [...Object.values(HOME.albums).flat(), ...LIB_ALBUMS];
+
+function artistIndex() {
+  const key = (n: string) => n.replace(/^the\s+/i, "");
+  const sorted = [...LIB_ARTISTS].sort((a, b) => key(a.name).localeCompare(key(b.name)));
+  return {
+    ignoredArticles: "The El La Los Las Le Les",
+    artists: sorted.map((a) => ({ ...a, letter: /^[a-z]/i.test(key(a.name)) ? key(a.name)[0].toUpperCase() : "#" })),
+  };
+}
 const firstAlbum = HOME.albums.recentlyPlayed[0];
 
 let player: PlayerSnapshot = {
@@ -96,6 +132,8 @@ setInterval(() => {
 const config = {
   serverUrl: "https://music.example.com",
   username: "demo",
+  artistsView: "albumArtist",
+  menuSections: ["artists", "albums", "playlists", "genres", "favourites"].map((id) => ({ id, enabled: id !== "genres" })),
   homeSections: ["resume", "recentlyAdded", "recentlyPlayed", "mostPlayed", "starred", "random", "highestRated", "playlists"].map((id, i) => ({ id, enabled: i < 6 || id === "playlists" })),
   bindings: null,
   volume: 0.7,
@@ -120,6 +158,34 @@ export async function mockInvoke(cmd: string, args: Record<string, any> = {}): P
       const p = HOME.playlists.find((x) => x.id === args.id) ?? HOME.playlists[0];
       return { ...p, owner: "demo", entry: allAlbums().slice(0, 6).flatMap((a) => songsFor(a).slice(0, 3)) };
     }
+    case "get_artists":
+      return artistIndex();
+    case "get_all_artists":
+      return [...LIB_ARTISTS.map((a, i) => ({ ...a, roles: i % 7 === 3 ? ["albumartist"] : ["albumartist", "artist"] })), ...GUESTS];
+    case "get_artist": {
+      const a = [...LIB_ARTISTS, ...GUESTS].find((x) => x.id === args.id) ?? LIB_ARTISTS[0];
+      return { ...a, album: LIB_ALBUMS.filter((x) => x.artistId === a.id) };
+    }
+    case "get_artist_songs": {
+      // Each guest features on a few albums; album artists also guest on one other album.
+      const n = Number(String(args.id).split("-")[1]) || 0;
+      return LIB_ALBUMS.filter((_, i) => i % 23 === n % 23).slice(0, 4)
+        .map((a) => ({ ...songsFor(a)[1], artists: [{ id: args.id, name: args.name }] }));
+    }
+    case "get_albums":
+      return LIB_ALBUMS;
+    case "get_playlists":
+      return LIB_PLAYLISTS;
+    case "get_genres":
+      return GENRES.map((name) => ({ name, albumCount: LIB_ALBUMS.filter((a) => a.genre === name).length, songCount: 0 }));
+    case "get_genre_albums":
+      return LIB_ALBUMS.filter((a) => a.genre === args.genre);
+    case "get_starred":
+      return {
+        artist: LIB_ARTISTS.slice(3, 9),
+        album: HOME.albums.starred,
+        song: HOME.albums.starred.slice(0, 4).flatMap((a) => songsFor(a).slice(0, 3)),
+      };
     case "player_play_songs":
       player = { ...player, queue: args.songs, index: args.index, position: 0, paused: false, duration: args.songs[args.index].duration };
       emit("player-state", structuredClone(player));

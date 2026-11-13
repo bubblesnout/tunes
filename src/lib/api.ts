@@ -33,6 +33,9 @@ export interface Song {
   album?: string;
   albumId?: string;
   artist?: string;
+  artistId?: string;
+  /** OpenSubsonic: every credited track artist. */
+  artists?: { id: string; name: string }[];
   coverArt?: string;
   duration?: number;
   track?: number;
@@ -58,6 +61,41 @@ export interface PlaylistDetail extends Playlist {
   entry: Song[];
 }
 
+export interface Artist {
+  id: string;
+  name: string;
+  coverArt?: string;
+  albumCount?: number;
+  /** OpenSubsonic roles: "albumartist", "artist", "composer"… */
+  roles?: string[];
+  /** Index letter from the server ("A", "#"). */
+  letter?: string;
+}
+
+export interface ArtistDetail extends Artist {
+  album: Album[];
+}
+
+export interface ArtistIndex {
+  artists: Artist[];
+  ignoredArticles: string;
+}
+
+export interface Genre {
+  name: string;
+  songCount?: number;
+  albumCount?: number;
+}
+
+export interface Starred {
+  artist: Artist[];
+  album: Album[];
+  song: Song[];
+}
+
+/** What the Artists page lists: album artists, track artists, or both as separate pages. */
+export type ArtistsView = "albumArtist" | "artist" | "both";
+
 export interface HomeSection {
   id: string;
   enabled: boolean;
@@ -67,6 +105,8 @@ export interface Config {
   serverUrl: string;
   username: string;
   homeSections: HomeSection[];
+  menuSections: HomeSection[];
+  artistsView: ArtistsView;
   bindings: Record<string, string[]> | null;
   volume: number;
   theme: string;
@@ -136,11 +176,20 @@ export const api = {
   home: () => invoke<HomeData>("get_home"),
   album: (id: string) => invoke<AlbumDetail>("get_album", { id }),
   playlist: (id: string) => invoke<PlaylistDetail>("get_playlist", { id }),
+  artists: () => invoke<ArtistIndex>("get_artists"),
+  allArtists: () => invoke<Artist[]>("get_all_artists"),
+  artistSongs: (id: string, name: string) => invoke<Song[]>("get_artist_songs", { id, name }),
+  artist: (id: string) => invoke<ArtistDetail>("get_artist", { id }),
+  albums: () => invoke<Album[]>("get_albums"),
+  playlists: () => invoke<Playlist[]>("get_playlists"),
+  genres: () => invoke<Genre[]>("get_genres"),
+  genreAlbums: (genre: string) => invoke<Album[]>("get_genre_albums", { genre }),
+  starred: () => invoke<Starred>("get_starred"),
   playSongs: (songs: Song[], index = 0) => invoke<void>("player_play_songs", { songs, index }),
   enqueue: (songs: Song[], next: boolean) => invoke<void>("player_enqueue", { songs, next }),
   player: (cmd: string, value?: number) => invoke<PlayerSnapshot>("player_command", { cmd, value }),
   playerState: () => invoke<PlayerSnapshot>("player_state"),
-  saveSettings: (patch: Partial<Pick<Config, "homeSections" | "bindings" | "theme" | "fullscreen" | "steamOverlay">>) =>
+  saveSettings: (patch: Partial<Pick<Config, "homeSections" | "menuSections" | "artistsView" | "bindings" | "theme" | "fullscreen" | "steamOverlay">>) =>
     invoke<Config>("save_settings", { patch }),
   quit: () => invoke<void>("quit"),
 };

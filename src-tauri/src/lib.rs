@@ -5,7 +5,6 @@ mod credentials;
 mod gamepad;
 mod logging;
 mod media;
-mod overlay_diag;
 mod overlay_host;
 mod player;
 mod steam;
@@ -18,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use subsonic::{Album, AlbumDetail, Client, Credentials, Playlist, PlaylistDetail, Song};
+use subsonic::{Album, AlbumDetail, ArtistDetail, ArtistIndex, Client, Credentials, Genre, Playlist, PlaylistDetail, Song, Starred};
 use tauri::{Manager, State, WindowEvent};
 
 pub struct AppState {
@@ -169,6 +168,53 @@ async fn get_playlist(state: State<'_, AppState>, id: String) -> CmdResult<Playl
     client(&state)?.playlist(&id).await.map_err(err)
 }
 
+#[tauri::command]
+async fn get_artists(state: State<'_, AppState>) -> CmdResult<ArtistIndex> {
+    client(&state)?.artists().await.map_err(err)
+}
+
+/// Every artist including track-only ones, each with its OpenSubsonic `roles`.
+#[tauri::command]
+async fn get_all_artists(state: State<'_, AppState>) -> CmdResult<Vec<subsonic::Artist>> {
+    client(&state)?.all_artists().await.map_err(err)
+}
+
+#[tauri::command]
+async fn get_artist_songs(state: State<'_, AppState>, id: String, name: String) -> CmdResult<Vec<Song>> {
+    client(&state)?.artist_songs(&id, &name).await.map_err(err)
+}
+
+#[tauri::command]
+async fn get_artist(state: State<'_, AppState>, id: String) -> CmdResult<ArtistDetail> {
+    client(&state)?.artist(&id).await.map_err(err)
+}
+
+/// Every album on the server (the frontend sorts and groups them).
+#[tauri::command]
+async fn get_albums(state: State<'_, AppState>) -> CmdResult<Vec<Album>> {
+    client(&state)?.all_albums("alphabeticalByName", &[]).await.map_err(err)
+}
+
+#[tauri::command]
+async fn get_playlists(state: State<'_, AppState>) -> CmdResult<Vec<Playlist>> {
+    client(&state)?.playlists().await.map_err(err)
+}
+
+#[tauri::command]
+async fn get_genres(state: State<'_, AppState>) -> CmdResult<Vec<Genre>> {
+    client(&state)?.genres().await.map_err(err)
+}
+
+#[tauri::command]
+async fn get_genre_albums(state: State<'_, AppState>, genre: String) -> CmdResult<Vec<Album>> {
+    client(&state)?.all_albums("byGenre", &[("genre", &genre)]).await.map_err(err)
+}
+
+#[tauri::command]
+async fn get_starred(state: State<'_, AppState>) -> CmdResult<Starred> {
+    client(&state)?.starred().await.map_err(err)
+}
+
 // ---------- player -------------------------------------------------------------------------
 
 #[tauri::command]
@@ -221,6 +267,8 @@ fn player_command(state: State<AppState>, cmd: String, value: Option<f64>) -> Sn
 #[serde(rename_all = "camelCase")]
 struct SettingsPatch {
     home_sections: Option<Vec<HomeSection>>,
+    menu_sections: Option<Vec<HomeSection>>,
+    artists_view: Option<String>,
     bindings: Option<serde_json::Value>,
     theme: Option<String>,
     fullscreen: Option<bool>,
@@ -232,6 +280,12 @@ fn save_settings(state: State<AppState>, patch: SettingsPatch) -> Config {
     state.config.update(|c| {
         if let Some(h) = patch.home_sections {
             c.home_sections = h;
+        }
+        if let Some(m) = patch.menu_sections {
+            c.menu_sections = m;
+        }
+        if let Some(v) = patch.artists_view {
+            c.artists_view = v;
         }
         if let Some(b) = patch.bindings {
             c.bindings = b;
@@ -331,17 +385,6 @@ pub fn run() {
                 .decorations(false)
                 .background_color(tauri::window::Color(14, 20, 27, 255));
             let window = builder.build()?;
-            if steam::launched_by_steam() {
-                // Snapshot once WebView2 has started its processes and drawn.
-                // (XInput's standard API doesn't report the Xbox button, so also log on a timer:
-                // open the overlay before the 45s snapshot to capture it.)
-                std::thread::spawn(|| {
-                    std::thread::sleep(std::time::Duration::from_secs(12));
-                    overlay_diag::log("12s after launch");
-                    std::thread::sleep(std::time::Duration::from_secs(33));
-                    overlay_diag::log("45s after launch");
-                });
-            }
             #[cfg(windows)]
             let hwnd = window.hwnd().ok().map(|h| h.0 as isize);
             #[cfg(not(windows))]
@@ -377,6 +420,15 @@ pub fn run() {
             get_home,
             get_album,
             get_playlist,
+            get_artists,
+            get_all_artists,
+            get_artist_songs,
+            get_artist,
+            get_albums,
+            get_playlists,
+            get_genres,
+            get_genre_albums,
+            get_starred,
             player_state,
             player_play_songs,
             player_enqueue,

@@ -13,7 +13,7 @@
   const time = $derived(now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
   const song = $derived(currentSong());
   const pct = $derived(app.player && app.player.duration ? (app.player.position / app.player.duration) * 100 : 0);
-  const title = $derived(({ settings: "Settings", nowPlaying: "Now Playing" } as Record<string, string>)[route().name] ?? "");
+  const title = $derived(({ settings: "Settings", nowPlaying: "Now Playing", genre: "Genres" } as Record<string, string>)[route().name] ?? "");
 </script>
 
 <header class="top">

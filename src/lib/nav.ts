@@ -31,10 +31,10 @@ export function current(): HTMLElement | null {
   return a;
 }
 
-export function focusEl(el: HTMLElement | null | undefined, scroll = true) {
+export function focusEl(el: HTMLElement | null | undefined, scroll = true, behavior: ScrollBehavior = "smooth") {
   if (!el) return;
   el.focus({ preventScroll: true });
-  if (scroll) el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  if (scroll) el.scrollIntoView({ block: "nearest", inline: "nearest", behavior });
 }
 
 /** Focus the scope's preferred element (`data-nav-default`), or its first focusable. */
@@ -49,7 +49,7 @@ export function ensureFocus() {
   if (!current()) focusDefault();
 }
 
-export function move(dir: Dir): boolean {
+export function move(dir: Dir, behavior: ScrollBehavior = "smooth"): boolean {
   const cur = current();
   if (!cur) {
     focusDefault();
@@ -110,7 +110,7 @@ export function move(dir: Dir): boolean {
     if (entry && focusables(g).includes(entry)) best = entry;
     else if (remembered && remembered.isConnected && remembered.offsetParent !== null) best = remembered;
   }
-  focusEl(best);
+  focusEl(best, true, behavior);
   return true;
 }
 

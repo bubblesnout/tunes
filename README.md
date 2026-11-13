@@ -7,10 +7,13 @@ A gamepad-first, full-screen music player for **Navidrome** (any Subsonic/OpenSu
 - Sign in once. Your password is stored in the OS credential store (Windows Credential Manager / Secret Service), and Subsonic tokens never expire, so you stay signed in indefinitely.
 - Fast start: Home renders instantly from a disk cache while it refreshes in the background, and album art is cached on disk.
 - Home sections that you can reorder and toggle: Continue Listening, Recently Added, Recently Played, Most Played, Favourites, Discover (random), Top Rated, Playlists.
-- Album and playlist views: play, shuffle, play next, add to queue.
+- Main-menu library pages under Home: Artists, Albums, Playlists, Genres and Favourites. Toggle and reorder them in Settings → Main Menu, where you also choose whether Artists lists album artists, track artists (including featured artists), or both as separate pages.
+- A–Z fast scrolling on those pages, as in Big Picture's All Games list: hold up or down and the screen dims behind a large letter. Keep holding and it moves a letter at a time.
+- Album, playlist and artist pages: play, shuffle, play next, add to queue.
 - Now Playing: cover art, progress, shuffle, previous, play/pause, next, repeat, and Up Next.
 - Gapless playback, decoded locally (FLAC, MP3, AAC/M4A, ALAC, Vorbis, WAV). Formats it can't decode, such as Opus, fall back to server-side MP3 transcoding.
 - In-app volume that only affects Tunes.
+- Steam overlay support when launched from Steam (Xbox/Guide button).
 - Integrates with Windows media controls: media keys, the Windows/Game Bar media overlay, and the Ally's quick settings.
 - Scrobbles plays to Navidrome, which is how Recently Played and Most Played stay current.
 - The queue and position are restored on the next launch.
@@ -21,6 +24,7 @@ A gamepad-first, full-screen music player for **Navidrome** (any Subsonic/OpenSu
 | Action | Gamepad | Keyboard |
 |---|---|---|
 | Navigate | D-pad / left stick | Arrow keys |
+| Fast scroll A–Z (library pages) | Hold D-pad ↑/↓ | Hold ↑/↓ |
 | Select | A | Enter |
 | Back | B | Esc / Backspace |
 | Main menu (slide-out) | View ⧉, or push left from the left edge | M |
@@ -84,10 +88,13 @@ src-tauri/src
   gamepad.rs      gilrs → raw "pad" events (focus-gated, with repeat)
   media.rs        SMTC / MPRIS via souvlaki
   covers.rs       cover:// protocol with disk cache
+  overlay_host.rs invisible D3D11 window that gives the Steam overlay frames to draw on
 src
   lib/input.ts    action bindings (remappable), keyboard + pad dispatch
   lib/nav.ts      spatial focus navigation
-  lib/screens     Login, Home, Collection (album/playlist), NowPlaying, Settings
+  lib/library.svelte.ts     library lists for the menu pages (sorting, A–Z letters, session cache)
+  lib/fastscroll.svelte.ts  hold-to-scroll with the big-letter overlay
+  lib/screens     Login, Home, Collection (album/playlist), Artist, Library (A–Z grids), Favourites, NowPlaying, Settings
   themes/         theme tokens (bigpicture.css), so new themes are just new token sets
 ```
 

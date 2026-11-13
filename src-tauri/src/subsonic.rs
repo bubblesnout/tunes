@@ -56,6 +56,11 @@ pub struct Song {
     #[serde(default)]
     pub artist: Option<String>,
     #[serde(default)]
+    pub artist_id: Option<String>,
+    /// OpenSubsonic: every credited track artist (Navidrome 0.55+).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artists: Vec<ArtistRef>,
+    #[serde(default)]
     pub cover_art: Option<String>,
     #[serde(default)]
     pub duration: Option<u32>,
@@ -101,6 +106,72 @@ pub struct PlaylistDetail {
     pub playlist: Playlist,
     #[serde(default)]
     pub entry: Vec<Song>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Artist {
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub cover_art: Option<String>,
+    #[serde(default)]
+    pub album_count: Option<u32>,
+    /// OpenSubsonic: roles this artist has in the library ("albumartist", "artist", "composer"...).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub roles: Vec<String>,
+    /// Index letter from the server ("A", "#"...), set by `artists()`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub letter: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistRef {
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistDetail {
+    #[serde(flatten)]
+    pub artist: Artist,
+    #[serde(default)]
+    pub album: Vec<Album>,
+}
+
+/// All artists, already grouped and sorted by the server (which honours its ignored articles).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistIndex {
+    pub artists: Vec<Artist>,
+    /// Space-separated articles the server ignores when sorting ("The El La ...").
+    pub ignored_articles: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Genre {
+    #[serde(default, alias = "value")]
+    pub name: String,
+    #[serde(default)]
+    pub song_count: Option<u32>,
+    #[serde(default)]
+    pub album_count: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Starred {
+    #[serde(default)]
+    pub artist: Vec<Artist>,
+    #[serde(default)]
+    pub album: Vec<Album>,
+    #[serde(default)]
+    pub song: Vec<Song>,
 }
 
 impl Client {
@@ -180,6 +251,103 @@ impl Client {
         Ok(from_list(root.pointer("/albumList2/album")))
     }
 
+    /// Every album matching `kind` (plus `extra` params), paging through the server's 500 limit.
+    pub async fn all_albums(&self, kind: &str, extra: &[(&str, &str)]) -> Result<Vec<Album>> {
+        const PAGE: usize = 500;
+        let mut out = Vec::new();
+        loop {
+            let (size, offset) = (PAGE.to_string(), out.len().to_string());
+            let mut params = vec![("type", kind), ("size", size.as_str()), ("offset", offset.as_str())];
+            params.extend_from_slice(extra);
+            let root = self.call("getAlbumList2", &params).await?;
+            let page: Vec<Album> = from_list(root.pointer("/albumList2/album"));
+            let n = page.len();
+            out.extend(page);
+            if n < PAGE || out.len() >= 100_000 {
+                return Ok(out);
+            }
+        }
+    }
+
+    pub async fn artists(&self) -> Result<ArtistIndex> {
+        let root = self.call("getArtists", &[]).await?;
+        let ignored_articles =
+            root.pointer("/artists/ignoredArticles").and_then(Value::as_str).unwrap_or("").to_string();
+        let mut artists = Vec::new();
+        if let Some(Value::Array(index)) = root.pointer("/artists/index") {
+            for group in index {
+                let letter = group.get("name").and_then(Value::as_str).unwrap_or("#").to_string();
+                for mut a in from_list::<Artist>(group.get("artist")) {
+                    a.letter = Some(letter.clone());
+                    artists.push(a);
+                }
+            }
+        }
+        Ok(ArtistIndex { artists, ignored_articles })
+    }
+
+    /// Every artist with any credit, including track-only artists, which `getArtists` leaves out
+    /// (Navidrome only lists album artists there). `search3` with the query `""` matches everything.
+    pub async fn all_artists(&self) -> Result<Vec<Artist>> {
+        const PAGE: usize = 500;
+        let mut out: Vec<Artist> = Vec::new();
+        loop {
+            let (count, offset) = (PAGE.to_string(), out.len().to_string());
+            let root = self
+                .call(
+                    "search3",
+                    &[("query", "\"\""), ("artistCount", &count), ("artistOffset", &offset), ("albumCount", "0"), ("songCount", "0")],
+                )
+                .await?;
+            let page: Vec<Artist> = from_list(root.pointer("/searchResult3/artist"));
+            let n = page.len();
+            out.extend(page);
+            if n < PAGE || out.len() >= 100_000 {
+                return Ok(out);
+            }
+        }
+    }
+
+    /// Songs crediting this artist, found by searching for their name and keeping exact id matches.
+    /// Used for "Appears On", since `getArtist` only lists albums where they're the album artist.
+    pub async fn artist_songs(&self, id: &str, name: &str) -> Result<Vec<Song>> {
+        const PAGE: usize = 500;
+        let mut matched = Vec::new();
+        let mut offset = 0;
+        while offset < PAGE * 4 {
+            let (count, off) = (PAGE.to_string(), offset.to_string());
+            let root = self
+                .call(
+                    "search3",
+                    &[("query", name), ("songCount", &count), ("songOffset", &off), ("artistCount", "0"), ("albumCount", "0")],
+                )
+                .await?;
+            let page: Vec<Song> = from_list(root.pointer("/searchResult3/song"));
+            let n = page.len();
+            matched.extend(page.into_iter().filter(|s| credits(s, id)));
+            if n < PAGE {
+                break;
+            }
+            offset += PAGE;
+        }
+        Ok(matched)
+    }
+
+    pub async fn artist(&self, id: &str) -> Result<ArtistDetail> {
+        let root = self.call("getArtist", &[("id", id)]).await?;
+        Ok(serde_json::from_value(root.get("artist").cloned().unwrap_or_default())?)
+    }
+
+    pub async fn genres(&self) -> Result<Vec<Genre>> {
+        let root = self.call("getGenres", &[]).await?;
+        Ok(from_list(root.pointer("/genres/genre")))
+    }
+
+    pub async fn starred(&self) -> Result<Starred> {
+        let root = self.call("getStarred2", &[]).await?;
+        Ok(serde_json::from_value(root.get("starred2").cloned().unwrap_or_default())?)
+    }
+
     pub async fn album(&self, id: &str) -> Result<AlbumDetail> {
         let root = self.call("getAlbum", &[("id", id)]).await?;
         Ok(serde_json::from_value(root.get("album").cloned().unwrap_or_default())?)
@@ -226,6 +394,11 @@ impl Client {
             self.url("stream", &[("id", id), ("format", "raw")])
         }
     }
+}
+
+/// Whether a song credits the artist `id` (OpenSubsonic `artists`, or the legacy single `artistId`).
+fn credits(s: &Song, id: &str) -> bool {
+    s.artists.iter().any(|a| a.id == id) || s.artist_id.as_deref() == Some(id)
 }
 
 fn from_list<T: for<'de> Deserialize<'de>>(v: Option<&Value>) -> Vec<T> {

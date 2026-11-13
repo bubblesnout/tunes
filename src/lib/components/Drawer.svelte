@@ -1,17 +1,19 @@
 <script lang="ts">
   // Slide-out main menu from the left, as in Steam Big Picture.
   import { api } from "../api";
-  import { app, currentSong, navigate, route } from "../app.svelte";
+  import { app, currentSong, menuPages, navigate, route, type Route } from "../app.svelte";
   import { focusDefault } from "../nav";
   import Icon from "./Icon.svelte";
   import Cover from "./Cover.svelte";
   import { tick } from "svelte";
 
-  const items = [
-    { id: "home", label: "Home", icon: "home" },
+  type Item = { id: Route["name"]; label: string; icon: string };
+  const items = $derived<Item[]>([
     { id: "nowPlaying", label: "Now Playing", icon: "music" },
+    { id: "home", label: "Home", icon: "home" },
+    ...menuPages(),
     { id: "settings", label: "Settings", icon: "settings" },
-  ] as const;
+  ]);
 
   let previous: HTMLElement | null = null;
   $effect(() => {
@@ -24,7 +26,8 @@
     }
   });
 
-  const active = $derived(route().name);
+  // Pages opened from a section (an album from Albums) keep that section highlighted.
+  const active = $derived(["nowPlaying", "settings"].includes(route().name) ? route().name : app.stack[0].name);
   const song = $derived(currentSong());
   const initial = $derived((app.config?.username ?? "?").slice(0, 1).toUpperCase());
   const server = $derived((app.config?.serverUrl ?? "").replace(/^https?:\/\//, ""));
@@ -41,11 +44,11 @@
   </div>
 
   <nav>
-    {#each items as it}
+    {#each items as it (it.id)}
       {@const isNp = it.id === "nowPlaying" && !!song}
-      <button class="item" class:np-item={isNp} class:active={active === it.id || (it.id === "home" && (active === "album" || active === "playlist"))}
+      <button class="item" class:np-item={isNp} class:active={active === it.id}
         data-nav data-nav-default={active === it.id ? "" : undefined}
-        onclick={() => navigate({ name: it.id })}>
+        onclick={() => navigate({ name: it.id } as Route)}>
         {#if isNp && song}
           <span class="np-art"><Cover id={song.coverArt} size={96} /></span>
           <span class="np-text">

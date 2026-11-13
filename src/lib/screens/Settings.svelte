@@ -1,6 +1,8 @@
 <script lang="ts">
   import { api, isTauri, on, type HomeSection, type PadStatus, type SteamStatus } from "../api";
-  import { app, loadHome, toast } from "../app.svelte";
+  import { app, loadHome, toast, ARTISTS_VIEWS, LIBRARY_PAGES, type LibraryPage } from "../app.svelte";
+  import type { ArtistsView } from "../api";
+  import { clearLibrary } from "../library.svelte";
   import {
     ACTIONS, BINDINGS_VERSION, DEFAULT_BINDINGS, captureNext, getBindings, inputLabel, setBindings, type Action, type Bindings,
   } from "../input";
@@ -17,6 +19,7 @@
 
   const TABS = [
     { id: "home", label: "Home Screen", icon: "home" },
+    { id: "menu", label: "Main Menu", icon: "menu" },
     { id: "controls", label: "Controller", icon: "gamepad" },
     { id: "general", label: "General", icon: "settings" },
     { id: "steam", label: "Steam", icon: "library" },
@@ -57,15 +60,32 @@
     saveSections();
   }
 
-  async function moveSection(i: number, delta: number, e: MouseEvent) {
+  /** Swap rows i and i+delta in `list`, save, and keep focus on the same button of the moved row. */
+  async function moveRow(list: HomeSection[], save: () => void, i: number, delta: number, e: MouseEvent) {
     const j = i + delta;
-    if (j < 0 || j >= sections.length) return;
-    [sections[i], sections[j]] = [sections[j], sections[i]];
-    saveSections();
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    save();
     const which = (e.currentTarget as HTMLElement).dataset.move;
     await tick();
     const target = document.querySelector<HTMLButtonElement>(`[data-row="${j}"] [data-move="${which}"]`);
     (target && !target.disabled ? target : document.querySelector<HTMLElement>(`[data-row="${j}"] [data-nav]`))?.focus();
+  }
+
+  // ---- Main menu pages ---------------------------------------------------------------
+  let menuSections = $state<HomeSection[]>(structuredClone($state.snapshot(app.config?.menuSections ?? [])));
+
+  async function saveMenu() {
+    app.config = await api.saveSettings({ menuSections: $state.snapshot(menuSections) });
+  }
+
+  async function setArtistsView(v: ArtistsView) {
+    app.config = await api.saveSettings({ artistsView: v });
+  }
+
+  function toggleMenu(i: number) {
+    menuSections[i].enabled = !menuSections[i].enabled;
+    saveMenu();
   }
 
   // ---- Controls ----------------------------------------------------------------------
@@ -163,6 +183,7 @@
     app.config = await api.logout();
     app.signedIn = false;
     app.home = { albums: {}, playlists: [] };
+    clearLibrary();
   }
 </script>
 
@@ -188,11 +209,38 @@
               <span class="text"><span class="name">{LABELS[s.id]?.name ?? s.id}</span><span class="sub">{LABELS[s.id]?.desc ?? ""}</span></span>
               <span class="switch" class:on={s.enabled}><span></span></span>
             </button>
-            <button class="btn icon" data-nav data-move="up" disabled={i === 0} onclick={(e) => moveSection(i, -1, e)} title="Move up">▲</button>
-            <button class="btn icon" data-nav data-move="down" disabled={i === sections.length - 1} onclick={(e) => moveSection(i, 1, e)} title="Move down">▼</button>
+            <button class="btn icon" data-nav data-move="up" disabled={i === 0} onclick={(e) => moveRow(sections, saveSections, i, -1, e)} title="Move up">▲</button>
+            <button class="btn icon" data-nav data-move="down" disabled={i === sections.length - 1} onclick={(e) => moveRow(sections, saveSections, i, 1, e)} title="Move down">▼</button>
           </li>
         {/each}
       </ul>
+    {:else if current === "menu"}
+      <h2>Main Menu</h2>
+      <p class="desc">Choose which library pages appear in the main menu, under Home, and in what order. On these pages, hold up or down to fast-scroll through the alphabet.</p>
+      <div class="group label-caps">Pages</div>
+      <ul>
+        {#each menuSections as s, i (s.id)}
+          {@const page = LIBRARY_PAGES[s.id as LibraryPage]}
+          <li class="row" data-row={i}>
+            <button class="row-main" data-nav onclick={() => toggleMenu(i)}>
+              <Icon name={page?.icon ?? "library"} size={20} />
+              <span class="text"><span class="name">{page?.label ?? s.id}</span><span class="sub">{page?.desc ?? ""}</span></span>
+              <span class="switch" class:on={s.enabled}><span></span></span>
+            </button>
+            <button class="btn icon" data-nav data-move="up" disabled={i === 0} onclick={(e) => moveRow(menuSections, saveMenu, i, -1, e)} title="Move up">▲</button>
+            <button class="btn icon" data-nav data-move="down" disabled={i === menuSections.length - 1} onclick={(e) => moveRow(menuSections, saveMenu, i, 1, e)} title="Move down">▼</button>
+          </li>
+        {/each}
+      </ul>
+      <div class="group label-caps">Artists page shows</div>
+      <p class="desc">Album artists are who each album is credited to. Track artists include everyone credited on a song, such as featured artists. "Both" gives each its own page in the main menu.</p>
+      <div class="choice">
+        {#each ARTISTS_VIEWS as v (v.id)}
+          <button class="btn" class:selected={app.config?.artistsView === v.id} data-nav onclick={() => setArtistsView(v.id)}>
+            <span class="radio" class:on={app.config?.artistsView === v.id}></span>{v.label}
+          </button>
+        {/each}
+      </div>
     {:else if current === "controls"}
       <h2>Controller</h2>
       <p class="desc">Select a binding, then press the new button or key.</p>
@@ -233,11 +281,11 @@
           </button>
         </li>
         <li class="row">
-          <span class="row-main static"><span class="text"><span class="name">Library</span><span class="sub">Reload Home from the server</span></span></span>
-          <button class="btn" data-nav onclick={() => loadHome(true)}>Refresh</button>
+          <span class="row-main static"><span class="text"><span class="name">Library</span><span class="sub">Reload Home and the library pages from the server</span></span></span>
+          <button class="btn" data-nav onclick={() => { clearLibrary(); loadHome(true); }}>Refresh</button>
         </li>
       </ul>
-      <p class="faint small">Tunes 0.1.3</p>
+      <p class="faint small">Tunes 0.2.0</p>
     {:else if current === "steam"}
       <h2>Steam</h2>
       <p class="desc">Add Tunes to your Steam library as a non-Steam app, with its own artwork, so you can launch it from Big Picture.</p>
@@ -345,6 +393,11 @@
   .bad { color: var(--danger); }
   .notice .row-main { border-left: 3px solid var(--accent); border-radius: 0; }
   .desc strong { color: var(--text-2); font-weight: 600; }
+  .choice { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 22px; }
+  .choice .btn { justify-content: flex-start; min-width: 190px; }
+  .radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; opacity: .6; flex-shrink: 0; }
+  .radio.on { opacity: 1; background: radial-gradient(circle, currentColor 0 3px, transparent 4px); }
+  .choice .btn.selected:not(:focus) { color: var(--text); }
   .bind { align-items: center; }
   .bind-name { flex: 1; padding-left: 4px; font-size: 15px; color: var(--text-2); }
   .bind-btn { width: 210px; justify-content: flex-start; min-height: 40px; padding: 0 14px; font-size: 14px; }

@@ -15,6 +15,11 @@
   import Collection from "./lib/screens/Collection.svelte";
   import NowPlaying from "./lib/screens/NowPlaying.svelte";
   import Settings from "./lib/screens/Settings.svelte";
+  import Library from "./lib/screens/Library.svelte";
+  import Artist from "./lib/screens/Artist.svelte";
+  import Favourites from "./lib/screens/Favourites.svelte";
+  import LetterOverlay from "./lib/components/LetterOverlay.svelte";
+  import { verticalMove } from "./lib/fastscroll.svelte";
   import { onMount, tick } from "svelte";
 
   const VOLUME_STEP = 0.05;
@@ -26,7 +31,7 @@
     onAction(handle);
   });
 
-  function handle(action: Action) {
+  function handle(action: Action, repeat = false) {
     // While the volume slider is open, left/right adjust it and anything else dismisses it.
     if (app.volumePopup) {
       if (action === "left" || action === "right" || action === "volDown" || action === "volUp") {
@@ -42,6 +47,7 @@
       case "down":
       case "left":
       case "right":
+        if (verticalMove(action, repeat)) return;
         // Pushing left from the far-left edge opens the main menu, as in Big Picture.
         if (!move(action) && action === "left" && app.signedIn && !app.menu && !app.drawer) app.drawer = true;
         else if (action === "right" && app.drawer && !move(action)) app.drawer = false;
@@ -106,7 +112,7 @@
   const r = $derived(route());
   const hints = $derived.by(() => {
     const h: { action: Action; label: string }[] = [];
-    if (app.signedIn && !app.menu && !app.drawer && (r.name === "home" || r.name === "album" || r.name === "playlist")) {
+    if (app.signedIn && !app.menu && !app.drawer && !["nowPlaying", "settings"].includes(r.name)) {
       h.push({ action: "options", label: "Options" });
     }
     h.push({ action: "select", label: "Select" });
@@ -135,6 +141,14 @@
             <Collection kind="album" id={r.id} />
           {:else if r.name === "playlist"}
             <Collection kind="playlist" id={r.id} />
+          {:else if r.name === "artist"}
+            <Artist id={r.id} />
+          {:else if r.name === "genre"}
+            <Library kind="genre" genre={r.id} />
+          {:else if r.name === "albumArtists" || r.name === "artists" || r.name === "albums" || r.name === "playlists" || r.name === "genres"}
+            <Library kind={r.name} />
+          {:else if r.name === "favourites"}
+            <Favourites />
           {:else if r.name === "nowPlaying"}
             <NowPlaying />
           {:else if r.name === "settings"}
@@ -149,6 +163,7 @@
   {#if app.signedIn}<Drawer />{/if}
   <Footer {hints} onaction={handle} />
   <VolumeOsd />
+  <LetterOverlay />
   <Menu />
   <Toast />
 {/if}

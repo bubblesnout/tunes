@@ -19,7 +19,7 @@ const ART_HERO: &[u8] = include_bytes!("../../art/steam/hero.png");
 const ART_LOGO: &[u8] = include_bytes!("../../art/steam/logo.png");
 const ART_ICON: &[u8] = include_bytes!("../../art/steam/icon.png");
 
-// ---------- Steam overlay compatibility -------------------------------------------------
+// ---------- Steam launch detection ------------------------------------------------------
 
 /// Steam sets these for anything it launches, including non-Steam shortcuts.
 pub fn launched_by_steam() -> bool {
@@ -28,6 +28,7 @@ pub fn launched_by_steam() -> bool {
         .any(|v| std::env::var_os(v).is_some_and(|x| !x.is_empty()))
 }
 
+/// Whether the overlay host should run: Windows, setting on, launched by Steam.
 pub fn overlay_compat_active(setting: bool) -> bool {
     cfg!(windows) && setting && launched_by_steam()
 }
