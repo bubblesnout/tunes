@@ -40,6 +40,20 @@ Gamepad input is ignored while Tunes isn't the focused window, so navigating Ste
 2. In the shortcut's **Controller** settings, choose the **Gamepad** template, or disable Steam Input for it. Otherwise Steam may translate the controller into keyboard and mouse input.
 3. Press Steam + X to open Steam's on-screen keyboard on the sign-in screen.
 
+## Releases
+
+Pushing a version tag (e.g. `v0.2.0`) runs the [Release workflow](.github/workflows/release.yml) on GitHub Actions. It downloads Motiva Sans, type-checks, runs the Rust tests, builds Tunes for Windows and publishes a GitHub Release with:
+
+- `Tunes_<version>_x64-setup.exe`: the installer
+- `Tunes_<version>_x64-portable.zip`: just `tunes.exe` (needs the WebView2 runtime, which Windows 11 already includes)
+
+The app's version comes from the tag. The builds aren't code-signed yet, so Windows SmartScreen may warn on first run.
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
 ## Development
 
 Requires Rust (stable) and Node 20+.

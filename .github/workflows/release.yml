@@ -1,0 +1,106 @@
+name: Release
+
+# Builds Tunes for Windows when a version tag (e.g. v0.1.0) is pushed, and publishes a
+# GitHub Release with the NSIS installer and a portable zip.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FONT_URL: https://font.download/dl/font/motiva-sans.zip
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # Motiva Sans is personal-use only, so it isn't committed; fetch it at build time.
+      - name: Download Motiva Sans
+        run: |
+          set -euo pipefail
+          tmp="$RUNNER_TEMP/motiva"
+          mkdir -p "$tmp"
+          curl -fsSL -A "Mozilla/5.0 (GitHub Actions build)" -o "$tmp/motiva.zip" "$FONT_URL"
+          unzip -q -o "$tmp/motiva.zip" -d "$tmp/x"
+          find "$tmp/x" -type f -iname '*.ttf' | while read -r f; do
+            n=$(basename "$f" | tr '[:upper:]' '[:lower:]')
+            case "$n" in
+              *extrabold*) w=ExtraBold ;;
+              *black*)     w=Black ;;
+              *bold*)      w=Bold ;;
+              *medium*)    w=Medium ;;
+              *light*)     w=Light ;;
+              *thin*)      w=Thin ;;
+              *regular*)   w=Regular ;;
+              *)           continue ;;
+            esac
+            cp "$f" "public/fonts/MotivaSans-$w.ttf"
+          done
+          ls -l public/fonts
+          for w in Thin Light Regular Medium Bold ExtraBold Black; do
+            test -f "public/fonts/MotivaSans-$w.ttf" || { echo "::error::Missing MotivaSans-$w.ttf"; exit 1; }
+          done
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Type-check frontend
+        run: npm run check
+
+      - name: Run Rust tests
+        working-directory: src-tauri
+        run: cargo test --lib --locked
+
+      - name: Work out version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then v="${GITHUB_REF_NAME#v}"; else v="$(node -p "require('./src-tauri/tauri.conf.json').version")"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Building version $v"
+
+      - name: Build installer
+        run: npx tauri build --bundles nsis --config "{\"version\":\"${{ steps.version.outputs.version }}\"}"
+
+      - name: Collect artifacts
+        id: collect
+        run: |
+          set -euo pipefail
+          v="${{ steps.version.outputs.version }}"
+          mkdir -p dist-release
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe "dist-release/Tunes_${v}_x64-setup.exe"
+          (cd src-tauri/target/release && 7z a -tzip "$GITHUB_WORKSPACE/dist-release/Tunes_${v}_x64-portable.zip" tunes.exe > /dev/null)
+          ls -l dist-release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tunes-windows-${{ steps.version.outputs.version }}
+          path: dist-release/*
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist-release/* \
+            --title "Tunes $GITHUB_REF_NAME" \
+            --generate-notes
