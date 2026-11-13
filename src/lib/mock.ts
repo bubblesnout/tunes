@@ -70,6 +70,8 @@ let player: PlayerSnapshot = {
   error: null,
 };
 
+const mockSteam = { installed: true, running: true, added: false, account: "demo" };
+
 const listeners = new Map<string, Set<(p: unknown) => void>>();
 export function mockListen(event: string, cb: (p: unknown) => void) {
   if (!listeners.has(event)) listeners.set(event, new Set());
@@ -148,6 +150,13 @@ export async function mockInvoke(cmd: string, args: Record<string, any> = {}): P
     case "save_settings":
       Object.assign(config, Object.fromEntries(Object.entries(args.patch).filter(([, v]) => v !== undefined && v !== null)));
       return config;
+    case "steam_status":
+      return { ...mockSteam };
+    case "steam_shortcut":
+      mockSteam.added = !!args.add;
+      return { ...mockSteam };
+    case "steam_restart":
+      return;
     case "gamepad_status":
       return { backend: "mock", pads: ["Mock Controller"], focused: true, lastInput: null };
     case "check_connection":

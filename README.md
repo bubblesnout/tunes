@@ -36,7 +36,7 @@ Gamepad input is ignored while Tunes isn't the focused window, so navigating Ste
 
 ## Using it from Steam Big Picture
 
-1. In Steam, choose **Add a Non-Steam Game** and select `Tunes.exe`.
+1. In Tunes, open **Settings → Steam → Add to Steam**. This creates the shortcut with its library artwork (capsules, hero, logo, icon) for your most recent Steam account, then offers to restart Steam so it shows up. (Or add `Tunes.exe` manually with **Add a Non-Steam Game**.)
 2. In the shortcut's **Controller** settings, choose the **Gamepad** template, or disable Steam Input for it. Otherwise Steam may translate the controller into keyboard and mouse input.
 3. Press Steam + X to open Steam's on-screen keyboard on the sign-in screen.
 
@@ -52,6 +52,7 @@ npm run tauri dev               # run with hot reload
 npm run tauri build             # release build + NSIS installer
 npm run check                   # type-check the frontend
 npm run dev                     # UI-only preview in a browser, with mock data
+node scripts/steam-art.mjs      # regenerate the Steam artwork in art/steam
 ```
 
 Linux (AppImage) builds need the usual Tauri prerequisites (`webkit2gtk-4.1`, `libayatana-appindicator3`), plus `libasound2-dev`, `libudev-dev` and `libdbus-1-dev`. Then run `npm run tauri build`.

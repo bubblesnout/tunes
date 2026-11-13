@@ -108,7 +108,17 @@ export interface PadStatus {
   lastInput: string | null;
 }
 
+export interface SteamStatus {
+  installed: boolean;
+  running: boolean;
+  added: boolean;
+  account: string | null;
+}
+
 export const api = {
+  steamStatus: () => invoke<SteamStatus>("steam_status"),
+  steamShortcut: (add: boolean) => invoke<SteamStatus>("steam_shortcut", { add }),
+  steamRestart: () => invoke<void>("steam_restart"),
   gamepadStatus: () => invoke<PadStatus>("gamepad_status"),
   bootstrap: () => invoke<{ signedIn: boolean; config: Config; player: PlayerSnapshot }>("bootstrap"),
   login: (server: string, username: string, password: string) =>

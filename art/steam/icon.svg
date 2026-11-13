@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f1a2b"/>
+      <stop offset="1" stop-color="#080c14"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a9fff"/>
+      <stop offset="1" stop-color="#1b2a6b"/>
+    </linearGradient>
+    <radialGradient id="tileHi" cx="200" cy="140" r="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#cfe8ff"/>
+    </linearGradient>
+    <linearGradient id="bars" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#00ccff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#1a9fff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="vignette" cx=".5" cy=".45" r=".75">
+      <stop offset=".55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".55"/>
+    </radialGradient>
+        <filter id="softBlur" filterUnits="userSpaceOnUse" x="0" y="0" width="256" height="256"><feGaussianBlur stdDeviation="1.536"/></filter>
+    <filter id="midBlur" filterUnits="userSpaceOnUse" x="0" y="0" width="256" height="256"><feGaussianBlur stdDeviation="1.792"/></filter>
+    <filter id="shadow" filterUnits="userSpaceOnUse" x="0" y="0" width="256" height="256">
+      <feDropShadow dx="0" dy="5.12" stdDeviation="7.68" flood-color="#000" flood-opacity=".55"/>
+    </filter>
+  </defs>
+  <g ><g transform="translate(0 0) scale(0.25)">
+    <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#tile)"/>
+    <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#tileHi)"/>
+    <!-- Notes nudged left/down so they sit optically centred: their outline centre was
+         ~31 units high and the beam/stems pull their visual weight ~40 units right. -->
+    <g transform="translate(-20 20)">
+      <path d="M420 250 L760 190 L760 640" fill="none" stroke="#fff" stroke-width="64" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M420 250 L420 700" fill="none" stroke="#fff" stroke-width="64" stroke-linecap="round"/>
+      <ellipse cx="330" cy="720" rx="110" ry="84" fill="#fff"/>
+      <ellipse cx="670" cy="660" rx="110" ry="84" fill="#fff"/>
+    </g>
+  </g></g></svg>

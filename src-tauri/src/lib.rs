@@ -6,6 +6,7 @@ mod gamepad;
 mod logging;
 mod media;
 mod player;
+mod steam;
 mod subsonic;
 
 use config::{app_dir, Config, ConfigStore, DirKind, HomeSection};
@@ -242,6 +243,26 @@ fn save_settings(state: State<AppState>, patch: SettingsPatch) -> Config {
 }
 
 #[tauri::command]
+async fn steam_status() -> steam::SteamStatus {
+    tauri::async_runtime::spawn_blocking(steam::status).await.unwrap_or(steam::SteamStatus {
+        installed: false, running: false, added: false, account: None,
+    })
+}
+
+#[tauri::command]
+async fn steam_shortcut(add: bool) -> CmdResult<steam::SteamStatus> {
+    tauri::async_runtime::spawn_blocking(move || if add { steam::add() } else { steam::remove() })
+        .await
+        .map_err(err)?
+        .map_err(err)
+}
+
+#[tauri::command]
+async fn steam_restart() -> CmdResult<()> {
+    tauri::async_runtime::spawn_blocking(steam::restart).await.map_err(err)?.map_err(err)
+}
+
+#[tauri::command]
 fn gamepad_status() -> gamepad::PadStatus {
     gamepad::status()
 }
@@ -316,6 +337,9 @@ pub fn run() {
             player_command,
             save_settings,
             gamepad_status,
+            steam_status,
+            steam_shortcut,
+            steam_restart,
             quit,
         ])
         .run(tauri::generate_context!())

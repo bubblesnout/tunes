@@ -31,11 +31,12 @@ souvlaki = "0.7"
 keyring = { version = "3", features = ["windows-native", "sync-secret-service", "crypto-rust"] }
 urlencoding = "2"
 futures = "0.3"
+crc32fast = "1"
 
 [target.'cfg(windows)'.dependencies]
 # XInput backend: the default (Windows.Gaming.Input) can detect pads but deliver no input to desktop apps.
 gilrs = { version = "0.11", default-features = false, features = ["xinput"] }
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Registry"] }
 
 [target.'cfg(not(windows))'.dependencies]
 gilrs = "0.11"

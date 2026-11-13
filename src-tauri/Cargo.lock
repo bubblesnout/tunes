@@ -5356,6 +5356,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cpal",
+ "crc32fast",
  "crossbeam-channel",
  "dirs 5.0.1",
  "futures",

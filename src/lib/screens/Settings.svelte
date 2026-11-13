@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, isTauri, on, type HomeSection, type PadStatus } from "../api";
+  import { api, isTauri, on, type HomeSection, type PadStatus, type SteamStatus } from "../api";
   import { app, loadHome, toast } from "../app.svelte";
   import {
     ACTIONS, BINDINGS_VERSION, DEFAULT_BINDINGS, captureNext, getBindings, inputLabel, setBindings, type Action, type Bindings,
@@ -19,6 +19,7 @@
     { id: "home", label: "Home Screen", icon: "home" },
     { id: "controls", label: "Controller", icon: "gamepad" },
     { id: "general", label: "General", icon: "settings" },
+    { id: "steam", label: "Steam", icon: "library" },
     { id: "account", label: "Account", icon: "user" },
   ];
 
@@ -106,6 +107,42 @@
     binds = structuredClone(DEFAULT_BINDINGS);
     await persistBindings();
     toast("Controls reset to defaults");
+  }
+
+  // ---- Steam -------------------------------------------------------------------------
+  let steam = $state<SteamStatus | null>(null);
+  let steamBusy = $state(false);
+  let needsRestart = $state(false);
+
+  $effect(() => {
+    if (current === "steam" && !steam) api.steamStatus().then((s) => (steam = s));
+  });
+
+  async function steamShortcut(add: boolean) {
+    steamBusy = true;
+    try {
+      steam = await api.steamShortcut(add);
+      needsRestart = steam.running;
+      toast(add ? (steam.running ? "Added to Steam. Restart Steam to see it." : "Added to Steam") : "Removed from Steam");
+    } catch (e) {
+      toast(String(e));
+    } finally {
+      steamBusy = false;
+    }
+  }
+
+  async function restartSteam() {
+    steamBusy = true;
+    toast("Restarting Steam…");
+    try {
+      await api.steamRestart();
+      needsRestart = false;
+      steam = await api.steamStatus();
+    } catch (e) {
+      toast(String(e));
+    } finally {
+      steamBusy = false;
+    }
   }
 
   // ---- General -----------------------------------------------------------------------
@@ -196,6 +233,46 @@
         </li>
       </ul>
       <p class="faint small">Tunes 0.1.0</p>
+    {:else if current === "steam"}
+      <h2>Steam</h2>
+      <p class="desc">Add Tunes to your Steam library as a non-Steam app, with its own artwork, so you can launch it from Big Picture.</p>
+      <div class="group label-caps">Status</div>
+      <div class="status-box">
+        <div class="kv"><span>Steam</span><span>{steam ? (steam.installed ? (steam.running ? "Installed, running" : "Installed") : "Not found") : "Checking…"}</span></div>
+        {#if steam?.account}<div class="kv"><span>Account</span><span>{steam.account}</span></div>{/if}
+        <div class="kv"><span>Tunes in library</span><span>{#if steam?.added}<span class="ok">●</span> Added{:else}Not added{/if}</span></div>
+      </div>
+      {#if steam?.installed}
+        <ul>
+          <li class="row">
+            <span class="row-main static"><span class="text">
+              <span class="name">{steam.added ? "Update Tunes in Steam" : "Add Tunes to Steam"}</span>
+              <span class="sub">{steam.added ? "Refreshes the shortcut and artwork" : "Creates the shortcut and installs the library artwork"}</span>
+            </span></span>
+            <button class="btn" class:primary={!steam.added} data-nav disabled={steamBusy} onclick={() => steamShortcut(true)}>
+              {steam.added ? "Update" : "Add to Steam"}
+            </button>
+          </li>
+          {#if steam.added}
+            <li class="row">
+              <span class="row-main static"><span class="text"><span class="name">Remove from Steam</span><span class="sub">Deletes the shortcut and its artwork</span></span></span>
+              <button class="btn" data-nav disabled={steamBusy} onclick={() => steamShortcut(false)}>Remove</button>
+            </li>
+          {/if}
+          {#if needsRestart}
+            <li class="row notice">
+              <span class="row-main static"><span class="text">
+                <span class="name">Restart Steam to apply</span>
+                <span class="sub">Steam only reads shortcuts when it starts. Steam will close and reopen.</span>
+              </span></span>
+              <button class="btn" data-nav disabled={steamBusy} onclick={restartSteam}>Restart Steam</button>
+            </li>
+          {/if}
+        </ul>
+        <p class="desc">Tip: in Steam, open Tunes' controller settings and choose the <strong>Gamepad</strong> layout (or turn Steam Input off) so Tunes receives your controller directly.</p>
+      {:else if steam}
+        <p class="desc">Steam wasn't found on this device. Install Steam and sign in once, then come back here.</p>
+      {/if}
     {:else}
       <h2>Account</h2>
       <div class="group label-caps">Server</div>
@@ -252,6 +329,8 @@
   .kv > span:first-child { color: var(--text-dim); }
   .ok { color: var(--green); }
   .bad { color: var(--danger); }
+  .notice .row-main { border-left: 3px solid var(--accent); border-radius: 0; }
+  .desc strong { color: var(--text-2); font-weight: 600; }
   .bind { align-items: center; }
   .bind-name { flex: 1; padding-left: 4px; font-size: 15px; color: var(--text-2); }
   .bind-btn { width: 210px; justify-content: flex-start; min-height: 40px; padding: 0 14px; font-size: 14px; }
