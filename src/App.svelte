@@ -10,6 +10,7 @@
   import Toast from "./lib/components/Toast.svelte";
   import Drawer from "./lib/components/Drawer.svelte";
   import Backdrop from "./lib/components/Backdrop.svelte";
+  import OverlayKeepAlive from "./lib/components/OverlayKeepAlive.svelte";
   import Login from "./lib/screens/Login.svelte";
   import Home from "./lib/screens/Home.svelte";
   import Collection from "./lib/screens/Collection.svelte";
@@ -60,6 +61,8 @@
       }
       case "back":
         if (back()) tick().then(ensureFocus);
+        // At the root of a section there's nowhere to go back to: open the main menu, as Steam does.
+        else if (app.signedIn) app.drawer = true;
         return;
       case "options": {
         const el = current();
@@ -109,6 +112,7 @@
     }
     h.push({ action: "select", label: "Select" });
     if (app.menu || app.drawer || app.stack.length > 1) h.push({ action: "back", label: "Back" });
+    else if (app.signedIn) h.push({ action: "back", label: "Menu" });
     return h;
   });
 
@@ -148,6 +152,7 @@
   <VolumeOsd />
   <Menu />
   <Toast />
+  {#if app.launch.overlayCompat}<OverlayKeepAlive />{/if}
 {/if}
 
 <style>

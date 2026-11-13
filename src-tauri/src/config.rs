@@ -22,6 +22,8 @@ pub struct Config {
     pub volume: f32,
     pub theme: String,
     pub fullscreen: bool,
+    /// Apply WebView2 switches that let the Steam overlay draw when launched from Steam.
+    pub steam_overlay: bool,
 }
 
 impl Default for HomeSection {
@@ -48,6 +50,7 @@ impl Default for Config {
             volume: 0.8,
             theme: "bigpicture".into(),
             fullscreen: true,
+            steam_overlay: true,
         }
     }
 }

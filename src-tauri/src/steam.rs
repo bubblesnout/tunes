@@ -19,6 +19,26 @@ const ART_HERO: &[u8] = include_bytes!("../../art/steam/hero.png");
 const ART_LOGO: &[u8] = include_bytes!("../../art/steam/logo.png");
 const ART_ICON: &[u8] = include_bytes!("../../art/steam/icon.png");
 
+// ---------- Steam overlay compatibility -------------------------------------------------
+
+/// WebView2/Chromium switches that let the Steam overlay draw over Tunes. Chromium normally
+/// renders in a separate GPU process through DirectComposition, which the overlay can't hook;
+/// these move GPU work into the browser process and present through a regular swap chain.
+/// (Replaces wry's defaults, so those are repeated first.)
+pub const OVERLAY_BROWSER_ARGS: &str =
+    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --in-process-gpu --disable-direct-composition";
+
+/// Steam sets these for anything it launches, including non-Steam shortcuts.
+pub fn launched_by_steam() -> bool {
+    ["SteamGameId", "SteamOverlayGameId", "SteamClientLaunch"]
+        .iter()
+        .any(|v| std::env::var_os(v).is_some_and(|x| !x.is_empty()))
+}
+
+pub fn overlay_compat_active(setting: bool) -> bool {
+    cfg!(windows) && setting && launched_by_steam()
+}
+
 // ---------- binary KeyValues (shortcuts.vdf) ---------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]

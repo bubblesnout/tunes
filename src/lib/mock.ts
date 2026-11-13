@@ -101,6 +101,7 @@ const config = {
   volume: 0.7,
   theme: "bigpicture",
   fullscreen: true,
+  steamOverlay: true,
 };
 
 export async function mockInvoke(cmd: string, args: Record<string, any> = {}): Promise<any> {
@@ -150,6 +151,8 @@ export async function mockInvoke(cmd: string, args: Record<string, any> = {}): P
     case "save_settings":
       Object.assign(config, Object.fromEntries(Object.entries(args.patch).filter(([, v]) => v !== undefined && v !== null)));
       return config;
+    case "launch_info":
+      return { launchedBySteam: false, overlayCompat: false };
     case "steam_status":
       return { ...mockSteam };
     case "steam_shortcut":

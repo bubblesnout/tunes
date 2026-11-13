@@ -71,6 +71,7 @@ export interface Config {
   volume: number;
   theme: string;
   fullscreen: boolean;
+  steamOverlay: boolean;
 }
 
 export type Repeat = "off" | "all" | "one";
@@ -115,7 +116,13 @@ export interface SteamStatus {
   account: string | null;
 }
 
+export interface LaunchInfo {
+  launchedBySteam: boolean;
+  overlayCompat: boolean;
+}
+
 export const api = {
+  launchInfo: () => invoke<LaunchInfo>("launch_info"),
   steamStatus: () => invoke<SteamStatus>("steam_status"),
   steamShortcut: (add: boolean) => invoke<SteamStatus>("steam_shortcut", { add }),
   steamRestart: () => invoke<void>("steam_restart"),
@@ -133,7 +140,7 @@ export const api = {
   enqueue: (songs: Song[], next: boolean) => invoke<void>("player_enqueue", { songs, next }),
   player: (cmd: string, value?: number) => invoke<PlayerSnapshot>("player_command", { cmd, value }),
   playerState: () => invoke<PlayerSnapshot>("player_state"),
-  saveSettings: (patch: Partial<Pick<Config, "homeSections" | "bindings" | "theme" | "fullscreen">>) =>
+  saveSettings: (patch: Partial<Pick<Config, "homeSections" | "bindings" | "theme" | "fullscreen" | "steamOverlay">>) =>
     invoke<Config>("save_settings", { patch }),
   quit: () => invoke<void>("quit"),
 };

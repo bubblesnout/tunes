@@ -33,6 +33,7 @@ export const app = $state({
   volumePopup: 0, // timestamp of last volume-slider interaction; 0 = closed
   backdrop: null as string | null, // cover id tinting the top of the screen (focused item)
   offline: false,
+  launch: { launchedBySteam: false, overlayCompat: false },
 });
 
 export function route(): Route {
@@ -95,6 +96,7 @@ export async function loadHome(force = false) {
 
 export async function init() {
   const boot = await api.bootstrap();
+  api.launchInfo().then((l) => (app.launch = l)).catch(() => {});
   app.config = boot.config;
   app.signedIn = boot.signedIn;
   app.player = boot.player;

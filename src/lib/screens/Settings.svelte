@@ -131,6 +131,11 @@
     }
   }
 
+  async function toggleOverlay() {
+    app.config = await api.saveSettings({ steamOverlay: !app.config?.steamOverlay });
+    toast("Takes effect the next time Tunes starts");
+  }
+
   async function restartSteam() {
     steamBusy = true;
     toast("Restarting Steam…");
@@ -232,7 +237,7 @@
           <button class="btn" data-nav onclick={() => loadHome(true)}>Refresh</button>
         </li>
       </ul>
-      <p class="faint small">Tunes 0.1.0</p>
+      <p class="faint small">Tunes 0.1.1</p>
     {:else if current === "steam"}
       <h2>Steam</h2>
       <p class="desc">Add Tunes to your Steam library as a non-Steam app, with its own artwork, so you can launch it from Big Picture.</p>
@@ -259,6 +264,15 @@
               <button class="btn" data-nav disabled={steamBusy} onclick={() => steamShortcut(false)}>Remove</button>
             </li>
           {/if}
+          <li class="row">
+            <button class="row-main" data-nav onclick={toggleOverlay}>
+              <span class="text">
+                <span class="name">Steam overlay support</span>
+                <span class="sub">Lets the Steam overlay appear over Tunes when it's launched from Steam. Uses a little more power while Tunes is on screen. Takes effect the next time Tunes starts.{app.launch.overlayCompat ? " Active now." : ""}</span>
+              </span>
+              <span class="switch" class:on={app.config?.steamOverlay}><span></span></span>
+            </button>
+          </li>
           {#if needsRestart}
             <li class="row notice">
               <span class="row-main static"><span class="text">

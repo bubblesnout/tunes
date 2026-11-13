@@ -222,6 +222,7 @@ struct SettingsPatch {
     bindings: Option<serde_json::Value>,
     theme: Option<String>,
     fullscreen: Option<bool>,
+    steam_overlay: Option<bool>,
 }
 
 #[tauri::command]
@@ -238,6 +239,9 @@ fn save_settings(state: State<AppState>, patch: SettingsPatch) -> Config {
         }
         if let Some(f) = patch.fullscreen {
             c.fullscreen = f;
+        }
+        if let Some(o) = patch.steam_overlay {
+            c.steam_overlay = o;
         }
     })
 }
@@ -260,6 +264,21 @@ async fn steam_shortcut(add: bool) -> CmdResult<steam::SteamStatus> {
 #[tauri::command]
 async fn steam_restart() -> CmdResult<()> {
     tauri::async_runtime::spawn_blocking(steam::restart).await.map_err(err)?.map_err(err)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LaunchInfo {
+    launched_by_steam: bool,
+    overlay_compat: bool,
+}
+
+#[tauri::command]
+fn launch_info(state: State<AppState>) -> LaunchInfo {
+    LaunchInfo {
+        launched_by_steam: steam::launched_by_steam(),
+        overlay_compat: steam::overlay_compat_active(state.config.get().steam_overlay),
+    }
 }
 
 #[tauri::command]
@@ -301,8 +320,21 @@ pub fn run() {
                 cfg_store.update(|c| c.volume = v);
             });
 
-            let window = app.get_webview_window("main").expect("main window");
-            let _ = window.set_fullscreen(cfg.fullscreen);
+            // The main window is created here (not in tauri.conf.json) so WebView2 browser
+            // switches can depend on how Tunes was launched.
+            let overlay = steam::overlay_compat_active(cfg.steam_overlay);
+            let mut builder = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
+                .title("Tunes")
+                .inner_size(1280.0, 800.0)
+                .min_inner_size(960.0, 540.0)
+                .fullscreen(cfg.fullscreen)
+                .decorations(false)
+                .background_color(tauri::window::Color(14, 20, 27, 255));
+            if overlay {
+                log::info!("launched by Steam: enabling Steam overlay compatibility");
+                builder = builder.additional_browser_args(steam::OVERLAY_BROWSER_ARGS);
+            }
+            let window = builder.build()?;
             #[cfg(windows)]
             let hwnd = window.hwnd().ok().map(|h| h.0 as isize);
             #[cfg(not(windows))]
@@ -338,6 +370,7 @@ pub fn run() {
             save_settings,
             gamepad_status,
             steam_status,
+            launch_info,
             steam_shortcut,
             steam_restart,
             quit,
