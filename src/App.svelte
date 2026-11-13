@@ -10,7 +10,6 @@
   import Toast from "./lib/components/Toast.svelte";
   import Drawer from "./lib/components/Drawer.svelte";
   import Backdrop from "./lib/components/Backdrop.svelte";
-  import OverlayKeepAlive from "./lib/components/OverlayKeepAlive.svelte";
   import Login from "./lib/screens/Login.svelte";
   import Home from "./lib/screens/Home.svelte";
   import Collection from "./lib/screens/Collection.svelte";
@@ -152,7 +151,6 @@
   <VolumeOsd />
   <Menu />
   <Toast />
-  {#if app.launch.overlayCompat}<OverlayKeepAlive />{/if}
 {/if}
 
 <style>

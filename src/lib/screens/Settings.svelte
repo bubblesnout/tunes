@@ -237,7 +237,7 @@
           <button class="btn" data-nav onclick={() => loadHome(true)}>Refresh</button>
         </li>
       </ul>
-      <p class="faint small">Tunes 0.1.2</p>
+      <p class="faint small">Tunes 0.1.3</p>
     {:else if current === "steam"}
       <h2>Steam</h2>
       <p class="desc">Add Tunes to your Steam library as a non-Steam app, with its own artwork, so you can launch it from Big Picture.</p>
@@ -268,7 +268,7 @@
             <button class="row-main" data-nav onclick={toggleOverlay}>
               <span class="text">
                 <span class="name">Steam overlay support</span>
-                <span class="sub">Lets the Steam overlay appear over Tunes when it's launched from Steam. Uses a little more power while Tunes is on screen. Takes effect the next time Tunes starts.{app.launch.overlayCompat ? " Active now." : ""}</span>
+                <span class="sub">Lets the Steam overlay appear over Tunes when it's launched from Steam, by drawing an invisible layer Steam can draw onto. Uses a little more power while Tunes is in front. Takes effect the next time Tunes starts.{app.launch.overlayCompat ? " Active now." : ""}</span>
               </span>
               <span class="switch" class:on={app.config?.steamOverlay}><span></span></span>
             </button>

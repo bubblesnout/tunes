@@ -6,6 +6,7 @@ mod gamepad;
 mod logging;
 mod media;
 mod overlay_diag;
+mod overlay_host;
 mod player;
 mod steam;
 mod subsonic;
@@ -321,20 +322,14 @@ pub fn run() {
                 cfg_store.update(|c| c.volume = v);
             });
 
-            // The main window is created here (not in tauri.conf.json) so WebView2 browser
-            // switches can depend on how Tunes was launched.
             let overlay = steam::overlay_compat_active(cfg.steam_overlay);
-            let mut builder = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
+            let builder = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
                 .title("Tunes")
                 .inner_size(1280.0, 800.0)
                 .min_inner_size(960.0, 540.0)
                 .fullscreen(cfg.fullscreen)
                 .decorations(false)
                 .background_color(tauri::window::Color(14, 20, 27, 255));
-            if overlay {
-                log::info!("launched by Steam: enabling Steam overlay compatibility");
-                builder = builder.additional_browser_args(steam::OVERLAY_BROWSER_ARGS);
-            }
             let window = builder.build()?;
             if steam::launched_by_steam() {
                 // Snapshot once WebView2 has started its processes and drawn.
@@ -352,6 +347,13 @@ pub fn run() {
             #[cfg(not(windows))]
             let hwnd = None;
             media::start(&player, hwnd);
+            if overlay {
+                // Give Steam's overlay (injected into tunes.exe) frames of our own to draw on.
+                log::info!("launched by Steam: starting Steam overlay host");
+                if let Some(h) = hwnd {
+                    overlay_host::start(h);
+                }
+            }
             gamepad::start(app.handle().clone(), focused.clone());
 
             app.manage(AppState { config: config.clone(), client, player });
