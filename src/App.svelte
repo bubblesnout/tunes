@@ -129,7 +129,7 @@
 </script>
 
 {#if app.ready}
-  <div class="shell" class:pushed={app.drawer}>
+  <div class="shell">
     {#if app.signedIn}
       <Backdrop />
       <TopBar />
@@ -170,12 +170,8 @@
 
 <style>
   :global(#app) { display: flex; flex-direction: column; }
-  .shell {
-    position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column;
-    transition: transform var(--t-drawer) var(--ease-out), filter var(--t-drawer) var(--ease-out);
-  }
-  /* Content shifts slightly and softens when the main menu slides out */
-  .shell.pushed { transform: translateX(calc(var(--drawer-w) * 0.12)); filter: brightness(0.7); }
+  /* The main menu slides over the content (as in Steam); the content itself never moves. */
+  .shell { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .shell > :global(.top) { position: absolute; top: 0; left: 0; right: 0; }
   main { flex: 1; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; padding-top: var(--topbar-h); }
   .login-main { padding-top: 0; }
