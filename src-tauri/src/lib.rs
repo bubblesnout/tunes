@@ -5,6 +5,7 @@ mod credentials;
 mod gamepad;
 mod logging;
 mod media;
+mod overlay_diag;
 mod player;
 mod steam;
 mod subsonic;
@@ -335,6 +336,17 @@ pub fn run() {
                 builder = builder.additional_browser_args(steam::OVERLAY_BROWSER_ARGS);
             }
             let window = builder.build()?;
+            if steam::launched_by_steam() {
+                // Snapshot once WebView2 has started its processes and drawn.
+                // (XInput's standard API doesn't report the Xbox button, so also log on a timer:
+                // open the overlay before the 45s snapshot to capture it.)
+                std::thread::spawn(|| {
+                    std::thread::sleep(std::time::Duration::from_secs(12));
+                    overlay_diag::log("12s after launch");
+                    std::thread::sleep(std::time::Duration::from_secs(33));
+                    overlay_diag::log("45s after launch");
+                });
+            }
             #[cfg(windows)]
             let hwnd = window.hwnd().ok().map(|h| h.0 as isize);
             #[cfg(not(windows))]

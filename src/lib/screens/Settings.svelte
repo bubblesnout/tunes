@@ -237,7 +237,7 @@
           <button class="btn" data-nav onclick={() => loadHome(true)}>Refresh</button>
         </li>
       </ul>
-      <p class="faint small">Tunes 0.1.1</p>
+      <p class="faint small">Tunes 0.1.2</p>
     {:else if current === "steam"}
       <h2>Steam</h2>
       <p class="desc">Add Tunes to your Steam library as a non-Steam app, with its own artwork, so you can launch it from Big Picture.</p>

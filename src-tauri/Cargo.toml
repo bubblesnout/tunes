@@ -1,6 +1,6 @@
 [package]
 name = "tunes"
-version = "0.1.1"
+version = "0.1.2"
 description = "Tunes - a gamepad-first Navidrome player"
 edition = "2021"
 
@@ -36,7 +36,7 @@ crc32fast = "1"
 [target.'cfg(windows)'.dependencies]
 # XInput backend: the default (Windows.Gaming.Input) can detect pads but deliver no input to desktop apps.
 gilrs = { version = "0.11", default-features = false, features = ["xinput"] }
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Registry"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Registry", "Win32_System_Diagnostics_ToolHelp"] }
 
 [target.'cfg(not(windows))'.dependencies]
 gilrs = "0.11"

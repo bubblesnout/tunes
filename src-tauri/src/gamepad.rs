@@ -180,6 +180,15 @@ fn run(app: AppHandle, focused: Arc<AtomicBool>) {
                 log::info!("controllers changed: {pads:?}");
                 update_status(&app, |s| s.pads = pads);
             }
+            // Guide/Xbox button opens the Steam overlay: snapshot where the overlay module is.
+            if let EventType::ButtonPressed(Button::Mode, _) = ev.event {
+                if crate::steam::launched_by_steam() {
+                    std::thread::spawn(|| {
+                        std::thread::sleep(std::time::Duration::from_millis(1500));
+                        crate::overlay_diag::log("Xbox button pressed");
+                    });
+                }
+            }
             if !focused_now {
                 continue;
             }
