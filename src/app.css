@@ -1,0 +1,52 @@
+@import "./themes/fonts.css";
+@import "./themes/bigpicture.css";
+
+* { box-sizing: border-box; }
+html, body, #app { margin: 0; height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  background-image: var(--bg-image);
+  color: var(--text);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+  font-size: 15px;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input { font: inherit; }
+:focus { outline: none; }
+[data-nav] { scroll-margin: 96px var(--gutter); }
+.dim { color: var(--text-dim); }
+.faint { color: var(--text-faint); }
+.ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Small uppercase label, as used for Steam section/stat headings */
+.label-caps {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim);
+}
+
+/* Steam "DialogButton": flat grey, tiny radius; turns light when focused. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; padding: 0 22px; border-radius: var(--radius-sm);
+  background: var(--control); color: var(--text-2); font-weight: 500; font-size: 15px;
+  transition: background var(--t-focus) var(--ease-out), color var(--t-focus), transform var(--t-focus) var(--ease-out), box-shadow var(--t-focus);
+}
+.btn:hover { background: var(--control-hover); }
+.btn:focus { background: var(--focus-fill); color: var(--focus-ink); box-shadow: var(--focus-shadow); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.primary:focus { background: linear-gradient(90deg, #48b6ff, #1a9fff); color: #fff; box-shadow: 0 0 0 2px var(--focus-border), var(--focus-shadow); }
+.btn.play { background: var(--play); color: #fff; }
+.btn.play:hover { background: var(--play-hover); }
+.btn.play:focus { background: var(--play-hover); color: #fff; box-shadow: 0 0 0 2px var(--focus-border), var(--focus-shadow); }
+.btn.icon { width: 48px; padding: 0; }
+.btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+.btn:disabled { opacity: 0.4; }
+
+/* Page entrance */
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
+.page { animation: page-in var(--t-fade) var(--ease-out); }
+
+::-webkit-scrollbar { width: 0; height: 0; }

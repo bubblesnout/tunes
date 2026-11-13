@@ -1,0 +1,9 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+*.log
+
+# Motiva Sans is personal-use only; not redistributed (see public/fonts/README.md)
+public/fonts/*.ttf
+public/fonts/*.otf

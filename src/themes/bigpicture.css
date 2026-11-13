@@ -1,0 +1,65 @@
+/* "Big Picture" theme — modelled on Steam Big Picture / Steam Deck UI.
+   Themes only define tokens; components read them, so a new theme is another [data-theme] block. */
+:root[data-theme="bigpicture"] {
+  --font: "Motiva Sans", "Segoe UI Variable Text", "Segoe UI", "Noto Sans", Arial, sans-serif;
+
+  /* Surfaces */
+  --bg: #0e1116;
+  --bg-image:
+    radial-gradient(140% 70% at 50% -10%, #263445 0%, rgba(38, 52, 69, 0) 60%),
+    linear-gradient(180deg, #18202a 0%, #11161c 45%, #0c0f13 100%);
+  --surface: #1f2329;        /* drawers, popups */
+  --surface-2: #23262e;      /* side rails, panels */
+  --surface-3: #2a2f37;      /* raised rows */
+  --control: #3d4450;        /* buttons, selected rows */
+  --control-hover: #4a5260;
+  --scrim: rgba(8, 10, 13, 0.62);
+
+  /* Text */
+  --text: #ffffff;
+  --text-2: #dcdedf;
+  --text-dim: #8b929a;
+  --text-faint: #5d6570;
+
+  /* Accents */
+  --accent: #1a9fff;
+  --accent-hover: #47b4ff;
+  --accent-2: #00ccff;
+  --green: #59bf40;
+  /* Steam's green "Play" button; blue (--accent) is reserved for "Resume" */
+  --play: #59bf40;
+  --play-hover: #6ccf52;
+  --warn: #ffc82c;
+  --danger: #e2533f;
+
+  /* Focus */
+  --focus-border: #dfe3e8;
+  --focus-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --focus-fill: #dcdedf;     /* focused button background */
+  --focus-ink: #0e141b;      /* focused button text */
+
+  /* Shape & layout */
+  --radius-sm: 2px;
+  --radius: 3px;
+  --radius-lg: 6px;
+  --topbar-h: 56px;
+  --footer-h: 48px;
+  --gutter: clamp(20px, 2.6vw, 56px);
+  --tile: clamp(140px, 11.4vw, 236px);
+  --tile-gap: clamp(8px, 0.7vw, 14px);
+  --drawer-w: clamp(300px, 22vw, 400px);
+
+  /* Motion — Steam focus is quick and springy, panels slide fast */
+  --tile-scale: 1.1;
+  --ease-out: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --ease-spring: cubic-bezier(0.25, 1.4, 0.5, 1);
+  --t-focus: 160ms;
+  --t-fade: 220ms;
+  --t-drawer: 240ms;
+
+  /* Xbox glyph colours for footer hints */
+  --btn-a: #6ec12b;
+  --btn-b: #e8463c;
+  --btn-x: #2f8bee;
+  --btn-y: #f2c230;
+}
