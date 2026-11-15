@@ -42,7 +42,7 @@
         </button>
 
         <div class="progress">
-          <div class="bar"><div class="fill" style:width="{pct}%"></div></div>
+          <div class="bar"><div class="fill" style:transform="scaleX({pct / 100})"></div></div>
           <div class="times"><span>{fmtTime(p.position)}</span><span>{fmtTime(p.duration)}</span></div>
         </div>
 
@@ -110,7 +110,7 @@
   .album-link:focus { background: var(--control); color: var(--text); }
   .progress { margin: 26px 0 22px; }
   .bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.14); overflow: hidden; }
-  .fill { height: 100%; background: var(--accent); transition: width 500ms linear; }
+  .fill { height: 100%; background: var(--accent); transform-origin: 0 50%; transition: transform 500ms linear; }
   .times { display: flex; justify-content: space-between; font-size: 13px; margin-top: 8px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
   .controls { display: flex; align-items: center; gap: 8px; }
   .playbtn { min-width: 150px; }

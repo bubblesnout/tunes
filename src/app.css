@@ -45,6 +45,17 @@ input { font: inherit; }
 .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
 .btn:disabled { opacity: 0.4; }
 
+/* Tunes isn't the app in front (set from the backend's foreground check, see app.svelte.ts):
+   freeze looping animations and skip transitions, so the webview has nothing to redraw.
+   Rule of thumb for anything that runs continuously: animate transform/opacity only, never
+   width/height, which forces a relayout and repaint on every frame. */
+:root[data-background] *,
+:root[data-background] *::before,
+:root[data-background] *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
 /* Page entrance */
 @keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
 .page { animation: page-in var(--t-fade) var(--ease-out); }

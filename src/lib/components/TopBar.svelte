@@ -40,7 +40,7 @@
             <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
           {/if}
         </span>
-        <span class="bar" style:width="{pct}%"></span>
+        <span class="bar" style:transform="scaleX({pct / 100})"></span>
       </button>
     {/if}
   </div>
@@ -77,10 +77,11 @@
   .a { font-size: 11px; color: var(--text-dim); }
   .mini:focus .a { color: #46505c; }
   .mini-art { position: relative; height: 100%; aspect-ratio: 1; flex-shrink: 0; }
-  .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); transition: width 500ms linear; }
+  /* scaleX, not width: the GPU moves it without relayout or repaint (see app.css). */
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent); transform-origin: 0 50%; transition: transform 500ms linear; }
   .eq { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding-bottom: 8px; background: rgba(0,0,0,.35); }
-  .eq i { width: 3px; background: #fff; border-radius: 1px; animation: eq 900ms ease-in-out infinite; }
+  .eq i { width: 3px; height: 18px; background: #fff; border-radius: 1px; transform-origin: 50% 100%; animation: eq 900ms ease-in-out infinite; }
   .eq i:nth-child(2) { animation-delay: -300ms; }
   .eq i:nth-child(3) { animation-delay: -600ms; }
-  @keyframes eq { 0%, 100% { height: 5px; } 50% { height: 18px; } }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.28); } 50% { transform: scaleY(1); } }
 </style>

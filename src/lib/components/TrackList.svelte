@@ -20,7 +20,7 @@
         <li class="disc label-caps">Disc {s.discNumber ?? 1}</li>
       {/if}
       <li>
-        <button class="track" class:playing={s.id === currentId} data-nav
+        <button class="track" class:playing={s.id === currentId} class:paused={app.player?.paused} data-nav
           onclick={() => playSongs(songs, i)}
           oncontextmenu={(e) => { e.preventDefault(); songMenu(s, () => playSongs(songs, i)); }}
           onnavoptions={() => songMenu(s, () => playSongs(songs, i))}>
@@ -53,8 +53,9 @@
   .c-dur { text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
   .track.playing .t { color: var(--accent-2); }
   .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
-  .eq i { width: 3px; background: var(--accent-2); animation: eq 900ms ease-in-out infinite; }
+  .eq i { width: 3px; height: 14px; background: var(--accent-2); transform-origin: 50% 100%; animation: eq 900ms ease-in-out infinite; }
+  .paused .eq i { animation-play-state: paused; }
   .eq i:nth-child(2) { animation-delay: -300ms; }
   .eq i:nth-child(3) { animation-delay: -600ms; }
-  @keyframes eq { 0%, 100% { height: 4px; } 50% { height: 14px; } }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.29); } 50% { transform: scaleY(1); } }
 </style>

@@ -30,6 +30,7 @@ Gamepad-first, full-screen Navidrome player styled after Steam Big Picture. The 
 - **A–Z fast scroll** (`fastscroll.svelte.ts`): tiles carry `data-letter`. A held up/down (`repeat` events) on a lettered tile shows `LetterOverlay`, scrolls instantly, and after 8 repeats (~1 s on a pad) jumps a letter per repeat. Modelled on Big Picture's All Games list from memory, not side by side; tune `LETTER_JUMP_AFTER` if it feels off.
 - Grids use `content-visibility: auto` and covers load lazily, so libraries with thousands of albums stay light. Library pages remember the last focused tile, so Back returns to it.
 - Footer button glyphs (`Glyph.svelte`) are SVG for pad buttons, so they centre regardless of font metrics. Never go back to Unicode ☰/⧉ characters; text keys use `text-box: trim-both cap alphabetic` to centre.
+- **Idle CPU:** anything that runs continuously (equaliser bars, progress bars) must animate `transform`/`opacity` only, never `width`/`height`, which relayouts and repaints every frame. v0.2.1 measured ~56% of a core in WebView2 while just playing, from height-animated equaliser bars and width-transitioned progress bars. While Tunes isn't the foreground app, `html[data-background]` (from the backend's `pad-status.focused`) pauses all animations and transitions (`app.css`).
 - Steam colours: the green Play button (`--play`) is for starting; blue (`--accent`) is only for "Resume".
 
 ## Fonts (licensing)

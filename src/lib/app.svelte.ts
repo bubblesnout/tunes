@@ -1,7 +1,7 @@
 // Global reactive app state (Svelte 5 runes).
 
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { api, isTauri, on, type ArtistsView, type Config, type HomeData, type PlayerSnapshot, type Progress } from "./api";
+import { api, isTauri, on, type ArtistsView, type Config, type HomeData, type PadStatus, type PlayerSnapshot, type Progress } from "./api";
 import { setBindings, type Device } from "./input";
 
 export type Route =
@@ -163,6 +163,12 @@ export async function init() {
     if (app.player) app.player.volume = v;
     app.volumeOsd = Date.now();
   });
+  // While Tunes isn't the app in front, freeze animations (app.css) so the webview stops
+  // redrawing. The backend already polls the foreground window for gamepad input.
+  const setBackground = (s: PadStatus) => document.documentElement.toggleAttribute("data-background", !s.focused);
+  await on<PadStatus>("pad-status", setBackground);
+  if (isTauri) api.gamepadStatus().then(setBackground).catch(() => {});
+
   window.addEventListener("toggle-fullscreen", async () => {
     if (!isTauri) return;
     const w = getCurrentWindow();

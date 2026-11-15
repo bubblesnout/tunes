@@ -26,7 +26,7 @@
         <div class="sub ellipsis">{song.artist ?? ""}{song.album ? ` — ${song.album}` : ""}</div>
         <div class="meta">Track {p.index + 1} of {p.queue.length}</div>
       </div>
-      <div class="progress"><div class="fill" style:width="{pct}%"></div></div>
+      <div class="progress"><div class="fill" style:transform="scaleX({pct / 100})"></div></div>
     </div>
   </button>
 {/if}
@@ -55,5 +55,5 @@
   .sub { font-size: 14px; color: var(--text-2); }
   .meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
   .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.12); }
-  .fill { height: 100%; background: var(--accent); transition: width 500ms linear; }
+  .fill { height: 100%; background: var(--accent); transform-origin: 0 50%; transition: transform 500ms linear; }
 </style>
